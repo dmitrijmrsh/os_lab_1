@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
             if (i == 0) {
                 result = x;
             } else if (x == 0) {
-                std::cerr << "An error occured with division by zero " << value << ' ' << x << '\n';
+                std::cerr << "An error occured with division by zero" << '\n';
                 exit(EXIT_FAILURE);
             } else {
                 result /= x;
