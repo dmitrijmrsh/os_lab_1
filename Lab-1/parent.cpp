@@ -8,18 +8,24 @@
 
 int main() {
     std::string name;
-    std::cout << "Enter the name of file: ";
-    std::cin >> name;
+    char c = 1;
+    write(STDOUT_FILENO, "Enter the name of file: ", 24);
+    while (c != '\n') {
+        read(STDIN_FILENO, &c, sizeof(char));
+        if (c != '\n') {
+            name += c;
+        }
+    }
 
     int fd1[2], fd2[2];
     int temp = pipe(fd1);
     if (temp == -1) {
-        std::cerr << "An error occured with creating a pipe1" << '\n';
+        write(STDERR_FILENO, "An error occured with creating a pipe1", 39);
         return 1;
     }
     temp = pipe(fd2);
     if (temp == -1) {
-        std::cerr << "An error occured with creating a pipe2" << '\n';
+        write(STDERR_FILENO, "An error occured with creating a pipe2", 39);
         return 1;
     }
 
@@ -28,26 +34,26 @@ int main() {
 
     pid_t pid = fork();
     if (pid == -1) {
-        std::cerr << "An error occured with creating a child process" << '\n';
+        write(STDERR_FILENO, "An error occured with creating a child process", 47);
         return 1;
     }
     if (pid == 0) {
         //child process
         close(write1);
         close(read2);
-        temp = dup2(read1, fileno(stdin));
+        temp = dup2(read1, STDIN_FILENO);
         if (temp == -1) {
-            std::cerr << "An error occured with redirecting input" << '\n';
+            write(STDERR_FILENO, "An error occured with redirecting input", 40);
             return 1;
         }
-        temp = dup2(write2, fileno(stdout));
+        temp = dup2(write2, STDOUT_FILENO);
         if (temp == -1) {
-            std::cerr << "An error occured with redirecting output" << '\n';
+            write(STDERR_FILENO, "An error occured with redirecting output", 41);
             return 1;
         }
         temp = execl("child", "child", name.c_str(), NULL);
         if (temp == -1) {
-            std::cerr << "An error occured with runing program from a child process" << '\n';
+            write(STDERR_FILENO, "An error occured with runing program from a child process", 58);
             return 1;
         }
         exit(EXIT_FAILURE);
@@ -56,19 +62,33 @@ int main() {
         //parent process
         close(read1);
         close(write2);
-        float value;
         char c;
-        std::vector<float> vec;
-        while(scanf("%f%c", &value, &c) > 0) {
-            vec.push_back(value);
+        char prev = '?';
+        std::vector<char> vec;
+        int countvalues = 0;
+        while(read(STDIN_FILENO, &c, 1)) {
+            vec.push_back(c);
             if (c == '\n') {
-                int size = vec.size();
-                dprintf(write1, "%d ", size);
-                for (int i = 0; i < size; ++i) {
-                    dprintf(write1, "%f ", vec[i]);
+                if ((prev >= '0') && (prev <= '9')) {
+                    ++countvalues;
+                }
+                for (int i = 0; i < vec.size(); ++i) {
+                    write(write1, &vec[i], 1);
                 }
                 vec.clear();
             }
+            prev = c;
+        }
+        int temp = 0;
+        while (read(read2, &c, 1)) {
+            write(STDOUT_FILENO, &c, 1);
+            if (c == '\n') {
+                ++temp;
+            }
+            if (temp == countvalues) {
+                break;
+            }
+            //write(STDOUT_FILENO, &c, 1);
         }
         close(write1);
         close(read2);
